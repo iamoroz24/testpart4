@@ -60,6 +60,37 @@ func (s *MinimaxStrategy) NextMove(
 	return bestRow, bestCol, nil
 }
 
+func checkWinner(board models.Board) (models.Cell, bool) {
+	for i := 0; i < 3; i++ {
+		if board[i][0] != models.Empty &&
+			board[i][0] == board[i][1] &&
+			board[i][1] == board[i][2] {
+			return board[i][0], true
+		}
+
+		if board[0][i] != models.Empty &&
+			board[0][i] == board[1][i] &&
+			board[1][i] == board[2][i] {
+			return board[0][i], true
+		}
+	}
+
+	if board[0][0] != models.Empty &&
+		board[0][0] == board[1][1] &&
+		board[1][1] == board[2][2] {
+		return board[0][0], true
+	}
+
+	if board[0][2] != models.Empty &&
+		board[0][2] == board[1][1] &&
+		board[1][1] == board[2][0] {
+		return board[0][2], true
+	}
+
+	return models.Empty, false
+}
+
+
 func (s *MinimaxStrategy) minimax(
 	board models.Board,
 	maximizingCell models.Cell,
@@ -136,32 +167,3 @@ func (s *MinimaxStrategy) minimax(
 	return bestScore
 }
 
-func checkWinner(board models.Board) (models.Cell, bool) {
-	for i := 0; i < 3; i++ {
-		if board[i][0] != models.Empty &&
-			board[i][0] == board[i][1] &&
-			board[i][1] == board[i][2] {
-			return board[i][0], true
-		}
-
-		if board[0][i] != models.Empty &&
-			board[0][i] == board[1][i] &&
-			board[1][i] == board[2][i] {
-			return board[0][i], true
-		}
-	}
-
-	if board[0][0] != models.Empty &&
-		board[0][0] == board[1][1] &&
-		board[1][1] == board[2][2] {
-		return board[0][0], true
-	}
-
-	if board[0][2] != models.Empty &&
-		board[0][2] == board[1][1] &&
-		board[1][1] == board[2][0] {
-		return board[0][2], true
-	}
-
-	return models.Empty, false
-}
