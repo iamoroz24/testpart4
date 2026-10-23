@@ -18,6 +18,12 @@ func setupService() GameService {
 	)
 }
 
+func (m *mockGameRepository) GetAvailableGames(
+	ctx context.Context,
+) ([]models.Game, error) {
+	return []models.Game{}, nil
+}
+
 func TestCreateGame(t *testing.T) {
 	service := setupService()
 
