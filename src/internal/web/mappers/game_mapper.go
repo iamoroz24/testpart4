@@ -2,7 +2,7 @@ package mappers
 
 import (
 	"project03/internal/domain/models"
-	webmodels "project03/internal/web/models"
+	"project03/internal/web/webmodels"
 )
 
 func ToWebResponse(game models.Game, winner string) webmodels.GameResponse {

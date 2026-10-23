@@ -14,6 +14,7 @@ import (
 	"project03/internal/domain/service"
 	"project03/internal/domain/strategy"
 	"project03/internal/web/handlers"
+	"project03/internal/web/middleware"
 )
 
 func BuildContainer() *fx.App {
@@ -25,6 +26,9 @@ func BuildContainer() *fx.App {
 			service.NewService,
 			handlers.NewGameHandler,
 			http.NewServeMux,
+			repository.NewUserRepository,
+			service.NewUserService,
+			handlers.NewAuthHandler,
 		),
 		fx.Invoke(registerRoutes),
 		fx.Invoke(startServer),
@@ -47,10 +51,42 @@ func NewPostgresPool(lc fx.Lifecycle) (*pgxpool.Pool, error) {
 	return pool, nil
 }
 
-func registerRoutes(mux *http.ServeMux, handler *handlers.GameHandler) {
-	mux.HandleFunc("POST /game", handler.CreateGame)
-	mux.HandleFunc("POST /game/{id}", handler.MakeMove)
-	mux.HandleFunc("GET /game/{id}", handler.GetGame)
+// func registerRoutes(
+// 	mux *http.ServeMux,
+// 	gameHandler *handlers.GameHandler,
+// 	authHandler *handlers.AuthHandler,
+// ) {
+// 	mux.HandleFunc("POST /auth/register", authHandler.Register)
+
+// 	mux.HandleFunc("POST /game", gameHandler.CreateGame)
+// 	mux.HandleFunc("POST /game/{id}", gameHandler.MakeMove)
+// 	mux.HandleFunc("GET /game/{id}", gameHandler.GetGame)
+// 	mux.HandleFunc("POST /auth/login", authHandler.Login)
+// }
+
+func registerRoutes(
+	mux *http.ServeMux,
+	gameHandler *handlers.GameHandler,
+	authHandler *handlers.AuthHandler,
+	userService service.UserService,
+) {
+	authMiddleware := middleware.NewUserAuthenticator(userService)
+
+	// Публичные маршруты
+	mux.HandleFunc("POST /auth/register", authHandler.Register)
+	mux.HandleFunc("POST /auth/login", authHandler.Login)
+
+	// Защищённые игровые маршруты
+	mux.Handle("POST /game", authMiddleware(
+		http.HandlerFunc(gameHandler.CreateGame),
+	))
+	mux.Handle("POST /game/{id}", authMiddleware(
+		http.HandlerFunc(gameHandler.MakeMove),
+	))
+	mux.Handle("GET /game/{id}", authMiddleware(
+		http.HandlerFunc(gameHandler.GetGame),
+	))
+	mux.Handle("GET /games", authMiddleware(http.HandlerFunc(gameHandler.GetAvailableGames)))
 }
 
 func startServer(lc fx.Lifecycle, mux *http.ServeMux) {

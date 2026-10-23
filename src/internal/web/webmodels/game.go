@@ -1,4 +1,4 @@
-package models
+package webmodels
 
 type GameRequest struct {
 	Row int `json:"row"`

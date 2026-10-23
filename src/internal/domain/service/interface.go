@@ -13,4 +13,5 @@ type GameService interface {
 	GetGame(ctx context.Context, id string) (models.Game, error)
 	JoinGame(ctx context.Context, gameID string, playerID uuid.UUID, cell models.Cell) error
 	MakeMove(ctx context.Context, gameID string, playerID uuid.UUID, row, col int) error
+	GetAvailableGames(ctx context.Context) ([]models.Game, error)
 }

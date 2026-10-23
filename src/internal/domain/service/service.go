@@ -138,3 +138,7 @@ func (s *gameService) MakeMove(
 
 	return s.repo.Save(ctx, game)
 }
+
+func (s *gameService) GetAvailableGames(ctx context.Context) ([]models.Game, error) {
+	return s.repo.GetAvailableGames(ctx)
+}

@@ -178,6 +178,85 @@ func (r *gameRepository) Get(ctx context.Context, id string) (models.Game, error
 	return mappers.ToDomain(dto), nil
 }
 
+
+func (r *gameRepository) GetAvailableGames(ctx context.Context) ([]models.Game, error)  {
+	rows, err := r.pool.Query(ctx, `
+		SELECT
+			g.id,
+			g.board,
+			g.current_player,
+			g.status,
+			g.winner,
+			g.mode,
+			p.player_id,
+			p.cell
+		FROM games g
+		JOIN game_players p ON p.game_id = g.id
+		WHERE g.status = $1
+		  AND (
+			  SELECT COUNT(*)
+			  FROM game_players gp
+			  WHERE gp.game_id = g.id
+		  ) = 1
+		ORDER BY g.created_at DESC
+	`, int16(models.GameWaiting))
+	if err != nil {
+		return nil, fmt.Errorf("get available games: %w", err)
+	}
+	defer rows.Close()
+
+	games := make([]models.Game, 0)
+
+	for rows.Next() {
+		var dto dbmodels.GameDTO
+		var boardJSON []byte
+		var status, mode, cell int16
+		var winner pgtype.UUID
+		var playerID uuid.UUID
+
+		if err := rows.Scan(
+			&dto.ID,
+			&boardJSON,
+			&dto.CurrentPlayer,
+			&status,
+			&winner,
+			&mode,
+			&playerID,
+			&cell,
+		); err != nil {
+			return nil, fmt.Errorf("scan available game: %w", err)
+		}
+
+		if err := json.Unmarshal(boardJSON, &dto.Board); err != nil {
+			return nil, fmt.Errorf("unmarshal available game board: %w", err)
+		}
+
+		dto.Status = int(status)
+		dto.Mode = int(mode)
+
+		if winner.Valid {
+			id := uuid.UUID(winner.Bytes)
+			dto.Winner = &id
+		}
+
+		dto.Players = []dbmodels.PlayerDTO{
+			{
+				ID:   playerID,
+				Cell: int(cell),
+			},
+		}
+
+		games = append(games, mappers.ToDomain(dto))
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate available games: %w", err)
+	}
+
+	return games, nil
+}
+
+
 func (r *gameRepository) Delete(ctx context.Context, id string) error {
 	gameID, err := uuid.Parse(id)
 	if err != nil {

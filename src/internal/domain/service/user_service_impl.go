@@ -13,8 +13,9 @@ import (
 )
 
 var (
-	ErrInvalidLogin    = errors.New("login must not be empty")
-	ErrInvalidPassword = errors.New("password must be at least 8 characters")
+	ErrInvalidLogin       = errors.New("login must not be empty")
+	ErrInvalidPassword    = errors.New("password must be at least 8 characters")
+	ErrInvalidCredentials = errors.New("invalid login or password")
 )
 
 type userService struct {
@@ -72,6 +73,37 @@ func (s *userService) GetByID(
 	user, err := s.repo.GetByID(ctx, id)
 	if err != nil {
 		return models.User{}, err
+	}
+
+	user.PasswordHash = ""
+	return user, nil
+}
+
+func (s *userService) Authenticate(
+	ctx context.Context,
+	login string,
+	password string,
+) (models.User, error) {
+	login = strings.TrimSpace(login)
+
+	if login == "" || password == "" {
+		return models.User{}, ErrInvalidCredentials
+	}
+
+	user, err := s.repo.GetByLogin(ctx, login)
+	if err != nil {
+		if errors.Is(err, models.ErrUserNotFound) {
+			return models.User{}, ErrInvalidCredentials
+		}
+
+		return models.User{}, err
+	}
+
+	if err := bcrypt.CompareHashAndPassword(
+		[]byte(user.PasswordHash),
+		[]byte(password),
+	); err != nil {
+		return models.User{}, ErrInvalidCredentials
 	}
 
 	user.PasswordHash = ""

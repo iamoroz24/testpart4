@@ -4,12 +4,12 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/google/uuid"
 
 	"project03/internal/domain/models"
 	"project03/internal/domain/service"
 	"project03/internal/web/mappers"
-	webmodels "project03/internal/web/models"
+	"project03/internal/web/webmodels"
+	"project03/internal/web/middleware"
 )
 
 type GameHandler struct {
@@ -22,9 +22,9 @@ func NewGameHandler(service service.GameService) *GameHandler {
 
 func (h *GameHandler) CreateGame(w http.ResponseWriter, r *http.Request) {
 
-	playerID, err := uuid.Parse(r.Header.Get("X-User-ID"))
-	if err != nil {
-		sendError(w, "invalid or missing user id", http.StatusUnauthorized)
+	playerID, ok := middleware.UserIDFromContext(r.Context())
+	if !ok {
+		sendError(w, "authentication requried", http.StatusUnauthorized)
 		return
 	}
 
@@ -71,16 +71,14 @@ func (h *GameHandler) MakeMove(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Временно используем UUID из заголовка.
-	// Позже его будет устанавливать UserAuthenticator
-	// после успешной авторизации.
-	playerID, err := uuid.Parse(r.Header.Get("X-User-ID"))
-	if err != nil {
-		sendError(w, "invalid or missing user id", http.StatusUnauthorized)
+	playerID, ok := middleware.UserIDFromContext(r.Context())
+	if !ok {
+		sendError(w, "authentication required", http.StatusUnauthorized)
 		return
 	}
+	
 
-	err = h.service.MakeMove(
+	err := h.service.MakeMove(
 		r.Context(),
 		gameID,
 		playerID,
@@ -114,6 +112,22 @@ func (h *GameHandler) GetGame(w http.ResponseWriter, r *http.Request) {
 	response := mappers.ToWebResponse(game, "")
 	sendJSON(w, response, http.StatusOK)
 }
+
+func (h *GameHandler) GetAvailableGames(w http.ResponseWriter, r *http.Request) {
+	games, err := h.service.GetAvailableGames(r.Context())
+	if err != nil {
+		sendError(w, "failed to get available games", http.StatusInternalServerError)
+		return
+	}
+
+	response := make([]any, 0, len(games))
+	for _, game := range games {
+		response = append(response, mappers.ToWebResponse(game, ""))
+	}
+
+	sendJSON(w, response, http.StatusOK)
+}
+
 
 func sendJSON(w http.ResponseWriter, data interface{}, status int) {
 	w.Header().Set("Content-Type", "application/json")
