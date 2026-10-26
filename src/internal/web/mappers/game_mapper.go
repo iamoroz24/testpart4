@@ -3,36 +3,62 @@ package mappers
 import (
 	"project03/internal/domain/models"
 	"project03/internal/web/webmodels"
+	"github.com/google/uuid"
 )
 
-func ToWebResponse(game models.Game, winner string) webmodels.GameResponse {
-	var board [3][3]int
-
-	for i := 0; i < 3; i++ {
-		for j := 0; j < 3; j++ {
-			board[i][j] = int(game.Board[i][j])
-		}
-	}
-
+func ToWebResponse(game models.Game, _ string) webmodels.GameResponse {
 	return webmodels.GameResponse{
-		ID:     game.ID,
-		Board:  board,
-		Winner: winner,
+		ID:            game.ID,
+		Board:         toWebBoard(game.Board),
+		Players:       toWebPlayers(game.Players),
+		CurrentPlayer: game.CurrentPlayer.String(),
+		Status:        int(game.Status),
+		Winner:        winnerID(game.Winner),
+		Mode:          int(game.Mode),
 	}
 }
 
 func ToNewGameResponse(game models.Game) webmodels.NewGameResponse {
-	var board [3][3]int
+	return webmodels.NewGameResponse{
+		ID:            game.ID,
+		Board:         toWebBoard(game.Board),
+		Players:       toWebPlayers(game.Players),
+		CurrentPlayer: game.CurrentPlayer.String(),
+		Status:        int(game.Status),
+		Mode:          int(game.Mode),
+	}
+}
+
+func toWebBoard(board models.Board) [3][3]int {
+	var result [3][3]int
 
 	for i := 0; i < 3; i++ {
 		for j := 0; j < 3; j++ {
-			board[i][j] = int(game.Board[i][j])
+			result[i][j] = int(board[i][j])
 		}
 	}
 
-	return webmodels.NewGameResponse{
-		ID:    game.ID,
-		Board: board,
-		Turn:  0,
+	return result
+}
+
+func toWebPlayers(players []models.Player) []webmodels.PlayerResponse {
+	result := make([]webmodels.PlayerResponse, 0, len(players))
+
+	for _, player := range players {
+		result = append(result, webmodels.PlayerResponse{
+			ID:   player.ID.String(),
+			Cell: int(player.Cell),
+		})
 	}
+
+	return result
+}
+
+
+func winnerID(id uuid.UUID) string {
+    if id == uuid.Nil {
+        return ""
+    }
+
+    return id.String()
 }

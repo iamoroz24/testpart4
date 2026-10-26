@@ -87,6 +87,9 @@ func registerRoutes(
 		http.HandlerFunc(gameHandler.GetGame),
 	))
 	mux.Handle("GET /games", authMiddleware(http.HandlerFunc(gameHandler.GetAvailableGames)))
+	mux.Handle("POST /games/{id}/join", authMiddleware(http.HandlerFunc(gameHandler.JoinGame)))
+	mux.Handle("GET /users/{id}", authMiddleware(
+		http.HandlerFunc(authHandler.GetUserByID)))
 }
 
 func startServer(lc fx.Lifecycle, mux *http.ServeMux) {

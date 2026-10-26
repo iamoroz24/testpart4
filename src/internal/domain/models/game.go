@@ -18,6 +18,7 @@ const (
 type Player struct {
 	ID   uuid.UUID
 	Cell Cell
+	IsComputer bool
 }
 
 type GameMode int

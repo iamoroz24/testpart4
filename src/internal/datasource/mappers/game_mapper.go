@@ -19,8 +19,9 @@ func ToDomain(dto dbmodels.GameDTO) models.Game {
 	players := make([]models.Player, 0, len(dto.Players))
 	for _, player := range dto.Players {
 		players = append(players, models.Player{
-			ID:   player.ID,
-			Cell: models.Cell(player.Cell),
+			ID:         player.ID,
+			Cell:       models.Cell(player.Cell),
+			IsComputer: player.IsComputer,
 		})
 	}
 
@@ -52,8 +53,9 @@ func ToDTO(game models.Game) dbmodels.GameDTO {
 	players := make([]dbmodels.PlayerDTO, 0, len(game.Players))
 	for _, player := range game.Players {
 		players = append(players, dbmodels.PlayerDTO{
-			ID:   player.ID,
-			Cell: int(player.Cell),
+			ID:         player.ID,
+			Cell:       int(player.Cell),
+			IsComputer: player.IsComputer,
 		})
 	}
 

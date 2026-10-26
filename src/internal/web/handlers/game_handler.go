@@ -129,6 +129,55 @@ func (h *GameHandler) GetAvailableGames(w http.ResponseWriter, r *http.Request) 
 }
 
 
+
+
+func (h *GameHandler) JoinGame(w http.ResponseWriter, r *http.Request) {
+	gameID := r.PathValue("id")
+
+	playerID, ok := middleware.UserIDFromContext(r.Context())
+	if !ok {
+		sendError(w, "authentication required", http.StatusUnauthorized)
+		return
+	}
+
+	var req struct {
+		Cell int `json:"cell"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		sendError(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	cell := models.Cell(req.Cell)
+	if cell != models.X && cell != models.O {
+		sendError(w, "cell must be 1 (X) or 2 (O)", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.service.JoinGame(
+		r.Context(),
+		gameID,
+		playerID,
+		cell,
+	); err != nil {
+		sendError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	game, err := h.service.GetGame(r.Context(), gameID)
+	if err != nil {
+		sendError(w, "failed to get game", http.StatusInternalServerError)
+		return
+	}
+
+	response := mappers.ToWebResponse(game, "")
+	sendJSON(w, response, http.StatusOK)
+}
+
+
+
+
 func sendJSON(w http.ResponseWriter, data interface{}, status int) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)

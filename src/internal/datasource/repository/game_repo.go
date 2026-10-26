@@ -79,8 +79,7 @@ func (r *gameRepository) Save(ctx context.Context, game models.Game) error {
 	}
 
 	for _, player := range dto.Players {
-		isComputer := game.Mode == models.GameWithComputer &&
-			player.Cell == int(models.O)
+		isComputer := player.IsComputer
 
 		_, err = tx.Exec(ctx, `
 			INSERT INTO game_players (game_id, player_id, cell, is_computer)
@@ -147,7 +146,7 @@ func (r *gameRepository) Get(ctx context.Context, id string) (models.Game, error
 	}
 
 	rows, err := r.pool.Query(ctx, `
-		SELECT player_id, cell
+		SELECT player_id, cell, is_computer
 		FROM game_players
 		WHERE game_id = $1
 		ORDER BY cell
@@ -163,7 +162,7 @@ func (r *gameRepository) Get(ctx context.Context, id string) (models.Game, error
 		var player dbmodels.PlayerDTO
 		var cell int16
 
-		if err := rows.Scan(&player.ID, &cell); err != nil {
+		if err := rows.Scan(&player.ID, &cell, &player.IsComputer); err != nil {
 			return models.Game{}, fmt.Errorf("scan game player: %w", err)
 		}
 
@@ -178,8 +177,7 @@ func (r *gameRepository) Get(ctx context.Context, id string) (models.Game, error
 	return mappers.ToDomain(dto), nil
 }
 
-
-func (r *gameRepository) GetAvailableGames(ctx context.Context) ([]models.Game, error)  {
+func (r *gameRepository) GetAvailableGames(ctx context.Context) ([]models.Game, error) {
 	rows, err := r.pool.Query(ctx, `
 		SELECT
 			g.id,
@@ -189,7 +187,8 @@ func (r *gameRepository) GetAvailableGames(ctx context.Context) ([]models.Game, 
 			g.winner,
 			g.mode,
 			p.player_id,
-			p.cell
+			p.cell,
+			p.is_computer
 		FROM games g
 		JOIN game_players p ON p.game_id = g.id
 		WHERE g.status = $1
@@ -213,6 +212,7 @@ func (r *gameRepository) GetAvailableGames(ctx context.Context) ([]models.Game, 
 		var status, mode, cell int16
 		var winner pgtype.UUID
 		var playerID uuid.UUID
+		var isComputer bool
 
 		if err := rows.Scan(
 			&dto.ID,
@@ -223,6 +223,7 @@ func (r *gameRepository) GetAvailableGames(ctx context.Context) ([]models.Game, 
 			&mode,
 			&playerID,
 			&cell,
+			&isComputer,
 		); err != nil {
 			return nil, fmt.Errorf("scan available game: %w", err)
 		}
@@ -241,8 +242,9 @@ func (r *gameRepository) GetAvailableGames(ctx context.Context) ([]models.Game, 
 
 		dto.Players = []dbmodels.PlayerDTO{
 			{
-				ID:   playerID,
-				Cell: int(cell),
+				ID:         playerID,
+				Cell:       int(cell),
+				IsComputer: isComputer,
 			},
 		}
 
@@ -255,7 +257,6 @@ func (r *gameRepository) GetAvailableGames(ctx context.Context) ([]models.Game, 
 
 	return games, nil
 }
-
 
 func (r *gameRepository) Delete(ctx context.Context, id string) error {
 	gameID, err := uuid.Parse(id)

@@ -50,10 +50,18 @@ func (s *gameService) CreateGame(
 		if err := game.JoinPlayer(computerID, models.O); err != nil {
 			return models.Game{}, err
 		}
+
+		// Явно отмечаем компьютерного игрока.
+		for i := range game.Players {
+			if game.Players[i].ID == computerID {
+				game.Players[i].IsComputer = true
+				break
+			}
+		}
+
 		if game.Status != models.GameInProgress {
 			return models.Game{}, errors.New("computer game did not start")
 		}
-
 	default:
 		return models.Game{}, errors.New("invalid game mode")
 	}

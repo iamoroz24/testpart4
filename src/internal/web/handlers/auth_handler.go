@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"github.com/google/uuid"
 
 	"project03/internal/domain/models"
 	"project03/internal/domain/service"
@@ -59,7 +60,6 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	sendJSON(w, response, http.StatusCreated)
 }
 
-
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	login, password, ok := r.BasicAuth()
 	if !ok {
@@ -84,5 +84,32 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		ID:    user.ID,
 		Login: user.Login,
 	}
+	sendJSON(w, response, http.StatusOK)
+}
+
+func (h *AuthHandler) GetUserByID(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+
+	if _, err := uuid.Parse(id); err != nil {
+		sendError(w, "invalid user ID", http.StatusBadRequest)
+		return
+	}
+
+	user, err := h.userService.GetByID(r.Context(), id)
+	if err != nil {
+		if errors.Is(err, models.ErrUserNotFound) {
+			sendError(w, "user not found", http.StatusNotFound)
+			return
+		}
+
+		sendError(w, "failed to get user", http.StatusInternalServerError)
+		return
+	}
+
+	response := webmodels.UserResponse{
+		ID:    user.ID,
+		Login: user.Login,
+	}
+
 	sendJSON(w, response, http.StatusOK)
 }
