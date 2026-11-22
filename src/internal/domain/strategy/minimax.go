@@ -90,7 +90,6 @@ func checkWinner(board models.Board) (models.Cell, bool) {
 	return models.Empty, false
 }
 
-
 func (s *MinimaxStrategy) minimax(
 	board models.Board,
 	maximizingCell models.Cell,
@@ -166,4 +165,3 @@ func (s *MinimaxStrategy) minimax(
 
 	return bestScore
 }
-

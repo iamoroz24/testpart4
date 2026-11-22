@@ -4,12 +4,11 @@ import (
 	"encoding/json"
 	"net/http"
 
-
 	"project03/internal/domain/models"
 	"project03/internal/domain/service"
 	"project03/internal/web/mappers"
-	"project03/internal/web/webmodels"
 	"project03/internal/web/middleware"
+	"project03/internal/web/webmodels"
 )
 
 type GameHandler struct {
@@ -76,7 +75,6 @@ func (h *GameHandler) MakeMove(w http.ResponseWriter, r *http.Request) {
 		sendError(w, "authentication required", http.StatusUnauthorized)
 		return
 	}
-	
 
 	err := h.service.MakeMove(
 		r.Context(),
@@ -128,9 +126,6 @@ func (h *GameHandler) GetAvailableGames(w http.ResponseWriter, r *http.Request) 
 	sendJSON(w, response, http.StatusOK)
 }
 
-
-
-
 func (h *GameHandler) JoinGame(w http.ResponseWriter, r *http.Request) {
 	gameID := r.PathValue("id")
 
@@ -174,9 +169,6 @@ func (h *GameHandler) JoinGame(w http.ResponseWriter, r *http.Request) {
 	response := mappers.ToWebResponse(game, "")
 	sendJSON(w, response, http.StatusOK)
 }
-
-
-
 
 func sendJSON(w http.ResponseWriter, data interface{}, status int) {
 	w.Header().Set("Content-Type", "application/json")

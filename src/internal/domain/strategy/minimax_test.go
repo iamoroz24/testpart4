@@ -1,6 +1,5 @@
 package strategy
 
-
 import (
 	"testing"
 

@@ -1,4 +1,3 @@
-
 package webmodels
 
 type GameRequest struct {
@@ -16,9 +15,9 @@ type GameResponse struct {
 	Board         [3][3]int        `json:"board"`
 	Players       []PlayerResponse `json:"players"`
 	CurrentPlayer string           `json:"current_player,omitempty"`
-	Status        int               `json:"status"`
-	Winner        string            `json:"winner,omitempty"`
-	Mode          int               `json:"mode"`
+	Status        int              `json:"status"`
+	Winner        string           `json:"winner,omitempty"`
+	Mode          int              `json:"mode"`
 }
 
 type NewGameResponse struct {
@@ -26,6 +25,6 @@ type NewGameResponse struct {
 	Board         [3][3]int        `json:"board"`
 	Players       []PlayerResponse `json:"players"`
 	CurrentPlayer string           `json:"current_player,omitempty"`
-	Status        int               `json:"status"`
-	Mode          int               `json:"mode"`
+	Status        int              `json:"status"`
+	Mode          int              `json:"mode"`
 }

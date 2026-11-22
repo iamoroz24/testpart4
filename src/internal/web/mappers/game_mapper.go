@@ -1,9 +1,9 @@
 package mappers
 
 import (
+	"github.com/google/uuid"
 	"project03/internal/domain/models"
 	"project03/internal/web/webmodels"
-	"github.com/google/uuid"
 )
 
 func ToWebResponse(game models.Game, _ string) webmodels.GameResponse {
@@ -54,11 +54,10 @@ func toWebPlayers(players []models.Player) []webmodels.PlayerResponse {
 	return result
 }
 
-
 func winnerID(id uuid.UUID) string {
-    if id == uuid.Nil {
-        return ""
-    }
+	if id == uuid.Nil {
+		return ""
+	}
 
-    return id.String()
+	return id.String()
 }

@@ -10,8 +10,7 @@ import (
 */
 
 type UserDTO struct {
-	ID uuid.UUID `db:"id"`
-	Login string `db:"login"`
-	PasswordHash string `db:"password_hash"`
+	ID           uuid.UUID `db:"id"`
+	Login        string    `db:"login"`
+	PasswordHash string    `db:"password_hash"`
 }
-

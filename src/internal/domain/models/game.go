@@ -16,8 +16,8 @@ const (
 )
 
 type Player struct {
-	ID   uuid.UUID
-	Cell Cell
+	ID         uuid.UUID
+	Cell       Cell
 	IsComputer bool
 }
 
