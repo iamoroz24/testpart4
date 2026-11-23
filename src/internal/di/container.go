@@ -2,8 +2,10 @@ package di
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -13,6 +15,7 @@ import (
 	"project03/internal/datasource/repository"
 	"project03/internal/domain/service"
 	"project03/internal/domain/strategy"
+	"project03/internal/security/jwt"
 	"project03/internal/web/handlers"
 	"project03/internal/web/middleware"
 )
@@ -29,6 +32,16 @@ func BuildContainer() *fx.App {
 			repository.NewUserRepository,
 			service.NewUserService,
 			handlers.NewAuthHandler,
+			service.NewAuthService,
+			fx.Annotate(
+				NewJWTProvider,
+				fx.As(
+					new(service.TokenProvider),
+					new(middleware.AccessTokenValidator),
+				),
+			),
+
+			
 		),
 		fx.Invoke(registerRoutes),
 		fx.Invoke(startServer),
@@ -51,6 +64,16 @@ func NewPostgresPool(lc fx.Lifecycle) (*pgxpool.Pool, error) {
 	return pool, nil
 }
 
+func NewJWTProvider() (*jwt.JwtProvider, error) {
+	secret := os.Getenv("JWT_SECRET")
+
+	if secret == "" {
+		return nil, fmt.Errorf("JWT_SECRET is not set")
+	}
+
+	return jwt.NewJwtProvider([]byte(secret))
+}
+
 // func registerRoutes(
 // 	mux *http.ServeMux,
 // 	gameHandler *handlers.GameHandler,
@@ -65,16 +88,20 @@ func NewPostgresPool(lc fx.Lifecycle) (*pgxpool.Pool, error) {
 // }
 
 func registerRoutes(
-	mux *http.ServeMux,
-	gameHandler *handlers.GameHandler,
-	authHandler *handlers.AuthHandler,
-	userService service.UserService,
+    mux *http.ServeMux,
+    gameHandler *handlers.GameHandler,
+    authHandler *handlers.AuthHandler,
+    accessToken middleware.AccessTokenValidator,
 ) {
-	authMiddleware := middleware.NewUserAuthenticator(userService)
+    authMiddleware := middleware.NewUserAuthenticator(accessToken)
+
+    // Регистрация маршрутов
 
 	// Публичные маршруты
 	mux.HandleFunc("POST /auth/register", authHandler.Register)
 	mux.HandleFunc("POST /auth/login", authHandler.Login)
+	mux.HandleFunc("POST /auth/refresh/access", authHandler.RefreshAccessToken)
+	mux.HandleFunc("POST /auth/refresh/refresh", authHandler.RefreshRefreshToken)
 
 	// Защищённые игровые маршруты
 	mux.Handle("POST /game", authMiddleware(
@@ -88,8 +115,11 @@ func registerRoutes(
 	))
 	mux.Handle("GET /games", authMiddleware(http.HandlerFunc(gameHandler.GetAvailableGames)))
 	mux.Handle("POST /games/{id}/join", authMiddleware(http.HandlerFunc(gameHandler.JoinGame)))
+	mux.Handle("GET /users/me", authMiddleware(http.HandlerFunc(authHandler.GetCurrentUser)))
 	mux.Handle("GET /users/{id}", authMiddleware(
 		http.HandlerFunc(authHandler.GetUserByID)))
+
+	
 }
 
 func startServer(lc fx.Lifecycle, mux *http.ServeMux) {

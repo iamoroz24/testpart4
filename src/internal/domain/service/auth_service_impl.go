@@ -52,11 +52,15 @@ func (c *authService) Login(ctx context.Context, login, password string) (TokenP
 func (c *authService) RefreshAccessToken(ctx context.Context, refreshToken string) (TokenPair, error) {
 	claims, err := c.tokenProvider.ValidateRefreshToken(refreshToken)
 	if err != nil {
-		return TokenPair{}, fmt.Errorf("validate refresh token: %w", err)
+		return TokenPair{}, fmt.Errorf("%w: %v", ErrInvalidToken, err)
 	}
 
 	user, err := c.userService.GetByID(ctx, claims.UserID.String())
 	if err != nil {
+		if errors.Is(err, ErrUserNotFound) {
+			return TokenPair{}, ErrInvalidToken
+		}
+
 		return TokenPair{}, fmt.Errorf("get user by id: %w", err)
 	}
 
@@ -74,11 +78,15 @@ func (c *authService) RefreshAccessToken(ctx context.Context, refreshToken strin
 func (c *authService) RefreshRefreshToken(ctx context.Context, refreshToken string) (TokenPair, error) {
 	claims, err := c.tokenProvider.ValidateRefreshToken(refreshToken)
 	if err != nil {
-		return TokenPair{}, fmt.Errorf("validate refresh token: %w", err)
+		return TokenPair{}, fmt.Errorf("%w: %v", ErrInvalidToken, err)
 	}
 
 	user, err := c.userService.GetByID(ctx, claims.UserID.String())
 	if err != nil {
+		if errors.Is(err, ErrUserNotFound) {
+			return TokenPair{}, ErrInvalidToken
+		}
+
 		return TokenPair{}, fmt.Errorf("get user by id: %w", err)
 	}
 

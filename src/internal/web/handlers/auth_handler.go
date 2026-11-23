@@ -10,6 +10,7 @@ import (
 
 	"project03/internal/domain/models"
 	"project03/internal/domain/service"
+	"project03/internal/web/middleware"
 	"project03/internal/web/webmodels"
 )
 
@@ -167,6 +168,36 @@ func (h *AuthHandler) RefreshAccessToken(w http.ResponseWriter, r *http.Request)
 
 func (h *AuthHandler) RefreshRefreshToken(w http.ResponseWriter, r *http.Request) {
 	h.handleRefreshToken(w, r, h.authService.RefreshRefreshToken)
+}
+
+
+func(h *AuthHandler) GetCurrentUser(w http.ResponseWriter, r *http.Request){
+
+	id, ok := middleware.UserIDFromContext(r.Context())
+
+	if !ok {
+		sendError(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	user, err := h.userService.GetByID(r.Context(), id.String())
+
+	if err != nil {
+		if errors.Is(err, service.ErrUserNotFound) {
+			sendError(w, "user not found", http.StatusNotFound)
+			return
+		}
+
+		sendError(w, "failed to get user", http.StatusInternalServerError)
+		return
+	}
+
+	response := webmodels.UserResponse{
+		ID: id,
+		Login: user.Login,
+	}
+
+	sendJSON(w, response, http.StatusOK)
 }
 
 func (h *AuthHandler) GetUserByID(w http.ResponseWriter, r *http.Request) {
