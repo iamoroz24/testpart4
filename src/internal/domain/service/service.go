@@ -150,3 +150,10 @@ func (s *gameService) MakeMove(
 func (s *gameService) GetAvailableGames(ctx context.Context) ([]models.Game, error) {
 	return s.repo.GetAvailableGames(ctx)
 }
+
+func (s *gameService) GetGameHistory(
+	ctx context.Context,
+	userID uuid.UUID,
+) ([]models.Game, error) {
+	return s.repo.GetGameHistory(ctx, userID)
+}

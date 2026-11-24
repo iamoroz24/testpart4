@@ -115,6 +115,9 @@ func registerRoutes(
 	))
 	mux.Handle("GET /games", authMiddleware(http.HandlerFunc(gameHandler.GetAvailableGames)))
 	mux.Handle("POST /games/{id}/join", authMiddleware(http.HandlerFunc(gameHandler.JoinGame)))
+	mux.Handle(
+    "GET /games/history",
+    authMiddleware(http.HandlerFunc(gameHandler.GetGameHistory)),)
 	mux.Handle("GET /users/me", authMiddleware(http.HandlerFunc(authHandler.GetCurrentUser)))
 	mux.Handle("GET /users/{id}", authMiddleware(
 		http.HandlerFunc(authHandler.GetUserByID)))

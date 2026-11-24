@@ -2,6 +2,7 @@ package models
 
 import (
 	"errors"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -36,6 +37,7 @@ type Game struct {
 	Status        GameStatus
 	Winner        uuid.UUID
 	Mode          GameMode
+	CreatedAt	  time.Time
 }
 
 func NewGame() Game {

@@ -170,6 +170,27 @@ func (h *GameHandler) JoinGame(w http.ResponseWriter, r *http.Request) {
 	sendJSON(w, response, http.StatusOK)
 }
 
+func (h *GameHandler) GetGameHistory(w http.ResponseWriter, r *http.Request) {
+    userID, ok := middleware.UserIDFromContext(r.Context())
+    if !ok {
+        sendError(w, "authentication required", http.StatusUnauthorized)
+        return
+    }
+
+    games, err := h.service.GetGameHistory(r.Context(), userID)
+    if err != nil {
+        sendError(w, "failed to get game history", http.StatusInternalServerError)
+        return
+    }
+
+    response := make([]any, 0, len(games))
+    for _, game := range games {
+        response = append(response, mappers.ToWebResponse(game, ""))
+    }
+
+    sendJSON(w, response, http.StatusOK)
+}
+
 func sendJSON(w http.ResponseWriter, data interface{}, status int) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
