@@ -37,7 +37,7 @@ type Game struct {
 	Status        GameStatus
 	Winner        uuid.UUID
 	Mode          GameMode
-	CreatedAt	  time.Time
+	CreatedAt     time.Time
 }
 
 func NewGame() Game {
@@ -61,6 +61,7 @@ var (
 	ErrPlayerAlreadyJoined = errors.New("player already joined the game")
 	ErrGameFull            = errors.New("game already has two players")
 	ErrInvalidPlayerCell   = errors.New("invalid player cell")
+	ErrGameNotFound        = errors.New("game not found")
 )
 
 func (g Game) CheckWinner() (Cell, bool) {

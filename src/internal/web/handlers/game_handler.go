@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -77,15 +78,36 @@ func (h *GameHandler) MakeMove(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := h.service.MakeMove(
-		r.Context(),
-		gameID,
-		playerID,
-		req.Row,
-		req.Col,
-	)
+	// err := h.service.MakeMove(
+	// 	r.Context(),
+	// 	gameID,
+	// 	playerID,
+	// 	req.Row,
+	// 	req.Col,
+	// )
+	// if err != nil {
+	// 	sendError(w, err.Error(), http.StatusBadRequest)
+	// 	return
+	// }
+
+	err := h.service.MakeMove(r.Context(), gameID, playerID, req.Row, req.Col)
 	if err != nil {
-		sendError(w, err.Error(), http.StatusBadRequest)
+		if errors.Is(err, models.ErrGameNotFound) {
+			sendError(w, "game not found", http.StatusNotFound)
+			return
+		}
+
+		if errors.Is(err, models.ErrGameFinished) ||
+			errors.Is(err, models.ErrGameNotStarted) ||
+			errors.Is(err, models.ErrPlayerNotFound) ||
+			errors.Is(err, models.ErrNotPlayerTurn) ||
+			errors.Is(err, models.ErrInvalidPosition) ||
+			errors.Is(err, models.ErrCellOccupied) {
+			sendError(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		sendError(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
@@ -104,10 +126,14 @@ func (h *GameHandler) GetGame(w http.ResponseWriter, r *http.Request) {
 
 	game, err := h.service.GetGame(r.Context(), gameID)
 	if err != nil {
-		sendError(w, "game not found", http.StatusNotFound)
+		if errors.Is(err, models.ErrGameNotFound) {
+			sendError(w, "game not found", http.StatusNotFound)
+			return
+		}
+
+		sendError(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
-
 	response := mappers.ToWebResponse(game)
 	sendJSON(w, response, http.StatusOK)
 }

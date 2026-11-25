@@ -12,13 +12,12 @@ import (
 
 func newTestUser() models.User {
 	return models.User{
-		ID: uuid.New(),
+		ID:    uuid.New(),
 		Login: "testuser",
 	}
 }
 
 const testSecret = "01234567890123456789012345678901" // ровно 32 байта
-
 
 func TestJwtProvider(t *testing.T) {
 	t.Run("valid secret", func(t *testing.T) {
@@ -32,7 +31,6 @@ func TestJwtProvider(t *testing.T) {
 			t.Fatal("expected provider, got nil")
 		}
 	})
-
 
 	t.Run("secret to short", func(t *testing.T) {
 		_, err := NewJwtProvider([]byte("short"))
@@ -49,7 +47,6 @@ func TestJwtProvider(t *testing.T) {
 		}
 	})
 }
-
 
 func TestGenerateAccessToken(t *testing.T) {
 	provider, _ := NewJwtProvider([]byte("01234567890123456789012345678901"))
@@ -118,7 +115,6 @@ func TestGenerateRefreshToken(t *testing.T) {
 	}
 }
 
-
 func TestTokenTypeMismatch(t *testing.T) {
 	provider, _ := NewJwtProvider([]byte("01234567890123456789012345678901"))
 	user := newTestUser()
@@ -141,8 +137,6 @@ func TestTokenTypeMismatch(t *testing.T) {
 	})
 }
 
-
-
 func TestValidateToken_WrongSignature(t *testing.T) {
 	provider1, _ := NewJwtProvider([]byte("01234567890123456789012345678901"))
 	provider2, _ := NewJwtProvider([]byte("98765432109876543210987654321098"))
@@ -155,7 +149,6 @@ func TestValidateToken_WrongSignature(t *testing.T) {
 		t.Fatal("expected error for token signed with different key")
 	}
 }
-
 
 func TestValidateToken_Expired(t *testing.T) {
 	provider, _ := NewJwtProvider([]byte("01234567890123456789012345678901"))
@@ -174,7 +167,6 @@ func TestValidateToken_Expired(t *testing.T) {
 	}
 }
 
-
 func TestValidateToken_Garbage(t *testing.T) {
 	provider, _ := NewJwtProvider([]byte("01234567890123456789012345678901"))
 
@@ -188,7 +180,6 @@ func TestValidateToken_Garbage(t *testing.T) {
 		t.Fatal("expected error for empty token")
 	}
 }
-
 
 func TestGetUserIDFromToken(t *testing.T) {
 	provider, _ := NewJwtProvider([]byte("01234567890123456789012345678901"))
@@ -213,7 +204,6 @@ func TestGetUserIDFromToken_Invalid(t *testing.T) {
 		t.Fatal("expected error for invalid token")
 	}
 }
-
 
 func TestValidateToken_MissingUserID(t *testing.T) {
 	provider, _ := NewJwtProvider([]byte("01234567890123456789012345678901"))

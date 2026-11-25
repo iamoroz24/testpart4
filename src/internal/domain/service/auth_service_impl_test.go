@@ -5,9 +5,9 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/google/uuid"
 	"project03/internal/domain/models"
 	"project03/internal/security/jwt"
-	"github.com/google/uuid"
 )
 
 // ---------- моки ----------

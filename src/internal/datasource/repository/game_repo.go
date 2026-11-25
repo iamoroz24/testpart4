@@ -129,7 +129,7 @@ func (r *gameRepository) Get(ctx context.Context, id string) (models.Game, error
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return models.Game{}, errors.New("game not found")
+			return models.Game{}, models.ErrGameNotFound
 		}
 		return models.Game{}, fmt.Errorf("get game: %w", err)
 	}

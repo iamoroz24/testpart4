@@ -170,8 +170,7 @@ func (h *AuthHandler) RefreshRefreshToken(w http.ResponseWriter, r *http.Request
 	h.handleRefreshToken(w, r, h.authService.RefreshRefreshToken)
 }
 
-
-func(h *AuthHandler) GetCurrentUser(w http.ResponseWriter, r *http.Request){
+func (h *AuthHandler) GetCurrentUser(w http.ResponseWriter, r *http.Request) {
 
 	id, ok := middleware.UserIDFromContext(r.Context())
 
@@ -193,7 +192,7 @@ func(h *AuthHandler) GetCurrentUser(w http.ResponseWriter, r *http.Request){
 	}
 
 	response := webmodels.UserResponse{
-		ID: id,
+		ID:    id,
 		Login: user.Login,
 	}
 
