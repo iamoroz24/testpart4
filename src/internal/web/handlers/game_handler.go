@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 
 	"project03/internal/domain/models"
 	"project03/internal/domain/service"
@@ -94,7 +95,7 @@ func (h *GameHandler) MakeMove(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response := mappers.ToWebResponse(game, "")
+	response := mappers.ToWebResponse(game)
 	sendJSON(w, response, http.StatusOK)
 }
 
@@ -107,7 +108,7 @@ func (h *GameHandler) GetGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response := mappers.ToWebResponse(game, "")
+	response := mappers.ToWebResponse(game)
 	sendJSON(w, response, http.StatusOK)
 }
 
@@ -120,7 +121,7 @@ func (h *GameHandler) GetAvailableGames(w http.ResponseWriter, r *http.Request) 
 
 	response := make([]any, 0, len(games))
 	for _, game := range games {
-		response = append(response, mappers.ToWebResponse(game, ""))
+		response = append(response, mappers.ToWebResponse(game))
 	}
 
 	sendJSON(w, response, http.StatusOK)
@@ -166,29 +167,70 @@ func (h *GameHandler) JoinGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response := mappers.ToWebResponse(game, "")
+	response := mappers.ToWebResponse(game)
 	sendJSON(w, response, http.StatusOK)
 }
 
 func (h *GameHandler) GetGameHistory(w http.ResponseWriter, r *http.Request) {
-    userID, ok := middleware.UserIDFromContext(r.Context())
-    if !ok {
-        sendError(w, "authentication required", http.StatusUnauthorized)
-        return
-    }
+	userID, ok := middleware.UserIDFromContext(r.Context())
+	if !ok {
+		sendError(w, "authentication required", http.StatusUnauthorized)
+		return
+	}
 
-    games, err := h.service.GetGameHistory(r.Context(), userID)
-    if err != nil {
-        sendError(w, "failed to get game history", http.StatusInternalServerError)
-        return
-    }
+	games, err := h.service.GetGameHistory(r.Context(), userID)
+	if err != nil {
+		sendError(w, "failed to get game history", http.StatusInternalServerError)
+		return
+	}
 
-    response := make([]any, 0, len(games))
-    for _, game := range games {
-        response = append(response, mappers.ToWebResponse(game, ""))
-    }
+	response := make([]any, 0, len(games))
+	for _, game := range games {
+		response = append(response, mappers.ToWebResponse(game))
+	}
 
-    sendJSON(w, response, http.StatusOK)
+	sendJSON(w, response, http.StatusOK)
+}
+
+func (h *GameHandler) GetLeaderboard(w http.ResponseWriter, r *http.Request) {
+	limitStr := r.URL.Query().Get("limit")
+
+	if limitStr == "" {
+		sendError(w, "empty limit", http.StatusBadRequest)
+		return
+	}
+
+	limit, err := strconv.Atoi(limitStr)
+
+	if err != nil {
+		sendError(w, "limit must be number", http.StatusBadRequest)
+		return
+	}
+
+	if limit <= 0 {
+		sendError(w, "limit must be positive", http.StatusBadRequest)
+		return
+	}
+
+	if limit > 100 {
+		limit = 100
+	}
+
+	items, err := h.service.GetLeaderboard(r.Context(), limit)
+
+	if err != nil {
+		sendError(w, "failed to get leaderboard", http.StatusInternalServerError)
+		return
+	}
+
+	response := make([]webmodels.LeaderboardEntryResponse, 0, len(items))
+
+	for _, entry := range items {
+		response = append(response, mappers.ToLeaderboardResponse(entry))
+	}
+
+	sendJSON(w, response, http.StatusOK)
+
 }
 
 func sendJSON(w http.ResponseWriter, data interface{}, status int) {

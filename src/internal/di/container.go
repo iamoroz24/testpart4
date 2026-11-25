@@ -33,15 +33,10 @@ func BuildContainer() *fx.App {
 			service.NewUserService,
 			handlers.NewAuthHandler,
 			service.NewAuthService,
-			fx.Annotate(
-				NewJWTProvider,
-				fx.As(
-					new(service.TokenProvider),
-					new(middleware.AccessTokenValidator),
-				),
-			),
 
-			
+			NewJWTProvider,
+			NewTokenProvider,
+			NewAccessTokenValidator,
 		),
 		fx.Invoke(registerRoutes),
 		fx.Invoke(startServer),
@@ -74,6 +69,14 @@ func NewJWTProvider() (*jwt.JwtProvider, error) {
 	return jwt.NewJwtProvider([]byte(secret))
 }
 
+func NewTokenProvider(p *jwt.JwtProvider) service.TokenProvider {
+	return p
+}
+
+func NewAccessTokenValidator(p *jwt.JwtProvider) middleware.AccessTokenValidator {
+	return p
+}
+
 // func registerRoutes(
 // 	mux *http.ServeMux,
 // 	gameHandler *handlers.GameHandler,
@@ -88,14 +91,14 @@ func NewJWTProvider() (*jwt.JwtProvider, error) {
 // }
 
 func registerRoutes(
-    mux *http.ServeMux,
-    gameHandler *handlers.GameHandler,
-    authHandler *handlers.AuthHandler,
-    accessToken middleware.AccessTokenValidator,
+	mux *http.ServeMux,
+	gameHandler *handlers.GameHandler,
+	authHandler *handlers.AuthHandler,
+	accessToken middleware.AccessTokenValidator,
 ) {
-    authMiddleware := middleware.NewUserAuthenticator(accessToken)
+	authMiddleware := middleware.NewUserAuthenticator(accessToken)
 
-    // Регистрация маршрутов
+	// Регистрация маршрутов
 
 	// Публичные маршруты
 	mux.HandleFunc("POST /auth/register", authHandler.Register)
@@ -116,13 +119,13 @@ func registerRoutes(
 	mux.Handle("GET /games", authMiddleware(http.HandlerFunc(gameHandler.GetAvailableGames)))
 	mux.Handle("POST /games/{id}/join", authMiddleware(http.HandlerFunc(gameHandler.JoinGame)))
 	mux.Handle(
-    "GET /games/history",
-    authMiddleware(http.HandlerFunc(gameHandler.GetGameHistory)),)
+		"GET /games/history",
+		authMiddleware(http.HandlerFunc(gameHandler.GetGameHistory)))
 	mux.Handle("GET /users/me", authMiddleware(http.HandlerFunc(authHandler.GetCurrentUser)))
 	mux.Handle("GET /users/{id}", authMiddleware(
 		http.HandlerFunc(authHandler.GetUserByID)))
+	mux.Handle("GET /games/leaderboard", authMiddleware(http.HandlerFunc(gameHandler.GetLeaderboard)))
 
-	
 }
 
 func startServer(lc fx.Lifecycle, mux *http.ServeMux) {

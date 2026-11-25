@@ -355,6 +355,78 @@ func (r *gameRepository) GetGameHistory(ctx context.Context, userID uuid.UUID) (
 	return games, nil
 }
 
+func (r *gameRepository) GetLeaderboard(ctx context.Context, limit int) ([]models.LeaderboardEntry, error) {
+
+	if limit <= 0 {
+		return nil, fmt.Errorf("limit must be positive")
+	}
+
+	rows, err := r.pool.Query(ctx, `
+		WITH player_stats AS (
+			SELECT
+				u.id AS user_id,
+				u.login,
+				COUNT(*) FILTER (
+					WHERE g.status = $1 AND g.winner = gp.player_id
+				) AS wins,
+				COUNT(*) FILTER (
+					WHERE g.status = $1 AND g.winner <> gp.player_id
+				) AS losses,
+				COUNT(*) FILTER (
+					WHERE g.status = $2
+				) AS draws
+			FROM games g
+			JOIN game_players gp ON gp.game_id = g.id
+			JOIN users u ON u.id = gp.player_id
+			WHERE g.status IN ($1, $2)
+			GROUP BY u.id, u.login
+		)
+		SELECT
+			user_id,
+			login,
+			wins::double precision / (losses + draws) AS win_ratio
+		FROM player_stats
+		WHERE losses + draws > 0
+		ORDER BY win_ratio DESC, wins DESC, login ASC
+		LIMIT $3;
+	`, int16(models.GameWon), int16(models.GameDraw), limit)
+	if err != nil {
+		return nil, fmt.Errorf("get leaderboard: %w", err)
+	}
+	defer rows.Close()
+
+	entries := make([]models.LeaderboardEntry, 0)
+
+	for rows.Next() {
+		var (
+			userID   uuid.UUID
+			login    string
+			winRatio float64
+		)
+
+		if err := rows.Scan(
+			&userID,
+			&login,
+			&winRatio,
+		); err != nil {
+			return nil, fmt.Errorf("scan leaderboard entry: %w", err)
+		}
+
+		entries = append(entries, models.LeaderboardEntry{
+			UserID:   userID,
+			Login:    login,
+			WinRatio: winRatio,
+		})
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate leaderboard: %w", err)
+	}
+
+	return entries, nil
+
+}
+
 func (r *gameRepository) Delete(ctx context.Context, id string) error {
 	gameID, err := uuid.Parse(id)
 	if err != nil {

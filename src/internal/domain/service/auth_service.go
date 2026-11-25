@@ -18,6 +18,7 @@ type TokenProvider interface {
 	GenerateAccessToken(user models.User) (string, error)
 	GenerateRefreshToken(user models.User) (string, error)
 	ValidateRefreshToken(token string) (*jwt.Claims, error)
+	//GetUserIDFromToken(token string) (uuid.UUID, error)
 }
 
 type TokenPair struct {

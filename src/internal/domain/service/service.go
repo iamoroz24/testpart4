@@ -152,8 +152,11 @@ func (s *gameService) GetAvailableGames(ctx context.Context) ([]models.Game, err
 }
 
 func (s *gameService) GetGameHistory(
-	ctx context.Context,
-	userID uuid.UUID,
-) ([]models.Game, error) {
+	ctx context.Context, userID uuid.UUID) ([]models.Game, error) {
 	return s.repo.GetGameHistory(ctx, userID)
+}
+
+func (s *gameService) GetLeaderboard(
+	ctx context.Context, limit int) ([]models.LeaderboardEntry, error) {
+	return s.repo.GetLeaderboard(ctx, limit)
 }

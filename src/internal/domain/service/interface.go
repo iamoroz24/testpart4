@@ -15,4 +15,5 @@ type GameService interface {
 	MakeMove(ctx context.Context, gameID string, playerID uuid.UUID, row, col int) error
 	GetAvailableGames(ctx context.Context) ([]models.Game, error)
 	GetGameHistory(ctx context.Context, userID uuid.UUID) ([]models.Game, error)
+	GetLeaderboard(ctx context.Context, limit int) ([]models.LeaderboardEntry, error)
 }

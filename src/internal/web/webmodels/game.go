@@ -28,3 +28,9 @@ type NewGameResponse struct {
 	Status        int              `json:"status"`
 	Mode          int              `json:"mode"`
 }
+
+type LeaderboardEntryResponse struct {
+	UserID   string  `json:"user_id"`
+	Login    string  `json:"login"`
+	WinRatio float64 `json:"win_ratio"`
+}
