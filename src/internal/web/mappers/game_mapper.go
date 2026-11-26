@@ -3,10 +3,11 @@ package mappers
 import (
 	"project03/internal/domain/models"
 	"project03/internal/web/webmodels"
+
 	"github.com/google/uuid"
 )
 
-func ToWebResponse(game models.Game, _ string) webmodels.GameResponse {
+func ToWebResponse(game models.Game) webmodels.GameResponse {
 	return webmodels.GameResponse{
 		ID:            game.ID,
 		Board:         toWebBoard(game.Board),
@@ -26,6 +27,14 @@ func ToNewGameResponse(game models.Game) webmodels.NewGameResponse {
 		CurrentPlayer: game.CurrentPlayer.String(),
 		Status:        int(game.Status),
 		Mode:          int(game.Mode),
+	}
+}
+
+func ToLeaderboardResponse(entry models.LeaderboardEntry) webmodels.LeaderboardEntryResponse {
+	return webmodels.LeaderboardEntryResponse{
+		UserID:   entry.UserID.String(),
+		Login:    entry.Login,
+		WinRatio: entry.WinRatio,
 	}
 }
 
@@ -54,11 +63,10 @@ func toWebPlayers(players []models.Player) []webmodels.PlayerResponse {
 	return result
 }
 
-
 func winnerID(id uuid.UUID) string {
-    if id == uuid.Nil {
-        return ""
-    }
+	if id == uuid.Nil {
+		return ""
+	}
 
-    return id.String()
+	return id.String()
 }

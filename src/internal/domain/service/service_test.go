@@ -4,9 +4,10 @@ import (
 	"context"
 	"testing"
 
-	"github.com/google/uuid"
 	"project03/internal/domain/models"
 	"project03/internal/domain/strategy"
+
+	"github.com/google/uuid"
 )
 
 func setupService() GameService {
@@ -21,6 +22,14 @@ func setupService() GameService {
 func (m *mockGameRepository) GetAvailableGames(
 	ctx context.Context,
 ) ([]models.Game, error) {
+	return []models.Game{}, nil
+}
+
+func (m *mockGameRepository) GetLeaderboard(ctx context.Context, limit int) ([]models.LeaderboardEntry, error) {
+	return []models.LeaderboardEntry{}, nil
+}
+
+func (m *mockGameRepository) GetGameHistory(ctx context.Context, userID uuid.UUID) ([]models.Game, error) {
 	return []models.Game{}, nil
 }
 

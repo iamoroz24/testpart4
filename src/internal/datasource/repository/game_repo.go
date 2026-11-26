@@ -115,7 +115,7 @@ func (r *gameRepository) Get(ctx context.Context, id string) (models.Game, error
 	var winner pgtype.UUID
 
 	err = r.pool.QueryRow(ctx, `
-		SELECT id, board, current_player, status, winner, mode
+		SELECT id, board, current_player, status, winner, mode, created_at
 		FROM games
 		WHERE id = $1
 	`, gameID).Scan(
@@ -125,10 +125,11 @@ func (r *gameRepository) Get(ctx context.Context, id string) (models.Game, error
 		&status,
 		&winner,
 		&mode,
+		&dto.CreatedAt,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return models.Game{}, errors.New("game not found")
+			return models.Game{}, models.ErrGameNotFound
 		}
 		return models.Game{}, fmt.Errorf("get game: %w", err)
 	}
@@ -186,6 +187,7 @@ func (r *gameRepository) GetAvailableGames(ctx context.Context) ([]models.Game, 
 			g.status,
 			g.winner,
 			g.mode,
+			g.created_at,
 			p.player_id,
 			p.cell,
 			p.is_computer
@@ -221,6 +223,7 @@ func (r *gameRepository) GetAvailableGames(ctx context.Context) ([]models.Game, 
 			&status,
 			&winner,
 			&mode,
+			&dto.CreatedAt,
 			&playerID,
 			&cell,
 			&isComputer,
@@ -256,6 +259,172 @@ func (r *gameRepository) GetAvailableGames(ctx context.Context) ([]models.Game, 
 	}
 
 	return games, nil
+}
+
+func (r *gameRepository) GetGameHistory(ctx context.Context, userID uuid.UUID) ([]models.Game, error) {
+	if userID == uuid.Nil {
+		return nil, errors.New("invalid user  ID")
+	}
+	rows, err := r.pool.Query(ctx, `
+		SELECT
+			g.id,
+			g.board,
+			g.current_player,
+			g.status,
+			g.winner,
+			g.mode,
+			g.created_at,
+			p.player_id,
+			p.cell,
+			p.is_computer
+		FROM games g
+		JOIN game_players p ON p.game_id = g.id
+		WHERE g.status IN ($1, $2)
+		  AND EXISTS (
+			  SELECT 1
+			  FROM game_players gp
+			  WHERE gp.game_id = g.id
+			    AND gp.player_id = $3
+		  )
+		ORDER BY g.created_at DESC
+	`, int16(models.GameDraw), int16(models.GameWon), userID)
+	if err != nil {
+		return nil, fmt.Errorf("get game history: %w", err)
+	}
+	defer rows.Close()
+
+	gamesMap := make(map[uuid.UUID]*dbmodels.GameDTO)
+	order := make([]uuid.UUID, 0)
+
+	for rows.Next() {
+		var dto dbmodels.GameDTO
+		var boardJSON []byte
+		var status, mode, cell int16
+		var winner pgtype.UUID
+		var playerID uuid.UUID
+		var isComputer bool
+
+		if err := rows.Scan(
+			&dto.ID,
+			&boardJSON,
+			&dto.CurrentPlayer,
+			&status,
+			&winner,
+			&mode,
+			&dto.CreatedAt,
+			&playerID,
+			&cell,
+			&isComputer,
+		); err != nil {
+			return nil, fmt.Errorf("scan game history: %w", err)
+		}
+
+		existing, ok := gamesMap[dto.ID]
+		if !ok {
+			if err := json.Unmarshal(boardJSON, &dto.Board); err != nil {
+				return nil, fmt.Errorf("unmarshal game history board: %w", err)
+			}
+			dto.Status = int(status)
+			dto.Mode = int(mode)
+			if winner.Valid {
+				id := uuid.UUID(winner.Bytes)
+				dto.Winner = &id
+			}
+			dto.Players = []dbmodels.PlayerDTO{}
+			gamesMap[dto.ID] = &dto
+			order = append(order, dto.ID)
+			existing = &dto
+		}
+
+		existing.Players = append(existing.Players, dbmodels.PlayerDTO{
+			ID:         playerID,
+			Cell:       int(cell),
+			IsComputer: isComputer,
+		})
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate game history: %w", err)
+	}
+
+	games := make([]models.Game, 0, len(order))
+	for _, id := range order {
+		games = append(games, mappers.ToDomain(*gamesMap[id]))
+	}
+
+	return games, nil
+}
+
+func (r *gameRepository) GetLeaderboard(ctx context.Context, limit int) ([]models.LeaderboardEntry, error) {
+
+	if limit <= 0 {
+		return nil, fmt.Errorf("limit must be positive")
+	}
+
+	rows, err := r.pool.Query(ctx, `
+		WITH player_stats AS (
+			SELECT
+				u.id AS user_id,
+				u.login,
+				COUNT(*) FILTER (
+					WHERE g.status = $1 AND g.winner = gp.player_id
+				) AS wins,
+				COUNT(*) FILTER (
+					WHERE g.status = $1 AND g.winner <> gp.player_id
+				) AS losses,
+				COUNT(*) FILTER (
+					WHERE g.status = $2
+				) AS draws
+			FROM games g
+			JOIN game_players gp ON gp.game_id = g.id
+			JOIN users u ON u.id = gp.player_id
+			WHERE g.status IN ($1, $2)
+			GROUP BY u.id, u.login
+		)
+		SELECT
+			user_id,
+			login,
+			wins::double precision / (losses + draws) AS win_ratio
+		FROM player_stats
+		WHERE losses + draws > 0
+		ORDER BY win_ratio DESC, wins DESC, login ASC
+		LIMIT $3;
+	`, int16(models.GameWon), int16(models.GameDraw), limit)
+	if err != nil {
+		return nil, fmt.Errorf("get leaderboard: %w", err)
+	}
+	defer rows.Close()
+
+	entries := make([]models.LeaderboardEntry, 0)
+
+	for rows.Next() {
+		var (
+			userID   uuid.UUID
+			login    string
+			winRatio float64
+		)
+
+		if err := rows.Scan(
+			&userID,
+			&login,
+			&winRatio,
+		); err != nil {
+			return nil, fmt.Errorf("scan leaderboard entry: %w", err)
+		}
+
+		entries = append(entries, models.LeaderboardEntry{
+			UserID:   userID,
+			Login:    login,
+			WinRatio: winRatio,
+		})
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate leaderboard: %w", err)
+	}
+
+	return entries, nil
+
 }
 
 func (r *gameRepository) Delete(ctx context.Context, id string) error {

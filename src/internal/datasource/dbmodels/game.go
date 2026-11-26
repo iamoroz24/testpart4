@@ -1,6 +1,10 @@
 package dbmodels
 
-import "github.com/google/uuid"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 type PlayerDTO struct {
 	ID         uuid.UUID `db:"player_id"`
@@ -16,4 +20,5 @@ type GameDTO struct {
 	Status        int         `db:"status"`
 	Winner        *uuid.UUID  `db:"winner"`
 	Mode          int         `db:"mode"`
+	CreatedAt     time.Time   `db:"created_at"`
 }

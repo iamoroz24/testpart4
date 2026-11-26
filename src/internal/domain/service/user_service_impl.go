@@ -16,6 +16,7 @@ var (
 	ErrInvalidLogin       = errors.New("login must not be empty")
 	ErrInvalidPassword    = errors.New("password must be at least 8 characters")
 	ErrInvalidCredentials = errors.New("invalid login or password")
+	ErrUserNotFound       = errors.New("user not found")
 )
 
 type userService struct {

@@ -38,6 +38,7 @@ func ToDomain(dto dbmodels.GameDTO) models.Game {
 		Status:        models.GameStatus(dto.Status),
 		Winner:        winner,
 		Mode:          models.GameMode(dto.Mode),
+		CreatedAt:     dto.CreatedAt,
 	}
 }
 
@@ -71,6 +72,7 @@ func ToDTO(game models.Game) dbmodels.GameDTO {
 		CurrentPlayer: game.CurrentPlayer,
 		Status:        int(game.Status),
 		Mode:          int(game.Mode),
+		CreatedAt:     game.CreatedAt,
 	}
 
 	if game.Winner != uuid.Nil {

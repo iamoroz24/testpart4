@@ -1,4 +1,3 @@
-
 package ports
 
 import (
@@ -13,10 +12,5 @@ type UserRepository interface {
 	GetByID(ctx context.Context, id string) (models.User, error)
 }
 
-
-
 /*Почему интерфейс находится в domain/ports: доменная логика определяет,
- какие операции ей нужны, а PostgreSQL — лишь одна из возможных реализаций.*/
-
-
- 
+какие операции ей нужны, а PostgreSQL — лишь одна из возможных реализаций.*/
